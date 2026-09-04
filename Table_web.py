@@ -338,7 +338,7 @@ if mode == "Tabel Maken":
             img = table.draw()
             prefix = (safe_filename(vakcode) + "_") if (vakcode and str(vakcode).strip()) else ""
             fname_safe = prefix + (safe_filename(f"{tekst_titel}_{tekst_itemnummer}_tabel.png") or "table.png")
-            st.image(img, caption=f"Gegenereerde Tabel — {fname_safe}", use_column_width=True)
+            st.image(img, caption=f"Gegenereerde Tabel — {fname_safe}", width=img.width)
             buf = io.BytesIO()
             img.save(buf, format="PNG")
             byte_im = buf.getvalue()
@@ -407,7 +407,7 @@ elif mode == "Sleepopties Maken":
             if generated_images:
                 st.success(f"Gegenereerde {len(generated_images)} plaatjes:")
                 for i, (filename, img) in enumerate(generated_images, start=1):
-                    st.image(img, caption=filename, use_column_width=False)
+                    st.image(img, caption=filename, width=img.width)
                     buf = io.BytesIO()
                     img.save(buf, format="PNG")
                     buf.seek(0)
