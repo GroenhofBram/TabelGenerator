@@ -7,6 +7,8 @@ import math
 import zipfile
 import re
 from datetime import date
+import inspect
+
 # Try to set dark theme for Streamlit
 try:
     cfg_dir = os.path.join(os.getcwd(), ".streamlit")
@@ -16,6 +18,7 @@ try:
         f.write('[theme]\nbase = "dark"\n')
 except Exception:
     pass
+
 # ---------- Shared helpers ----------
 def safe_filename(s):
     if s is None:
@@ -23,6 +26,7 @@ def safe_filename(s):
     s = str(s).strip()
     s = s.replace(" ", "_")
     return re.sub(r"[^A-Za-z0-9._-]", "", s)
+
 def wrap_text(text, width):
     if text is None or str(text).strip() == "":
         return {"wrapped_text": "", "line_count": 0}
@@ -45,22 +49,44 @@ def wrap_text(text, width):
         wrapped_lines.append(current_line)
         lines_for_curr_text += 1
     return {"wrapped_text": "\n".join(wrapped_lines), "line_count": lines_for_curr_text}
-# Helper to display images robustly across Streamlit versions
+
 def display_image(img, caption=None, key=None):
     """
-    Try modern argument use_container_width; if Streamlit version doesn't accept it,
-    fall back to explicit width to preserve appearance.
+    Display images robustly across Streamlit versions:
+    Only pass keyword arguments supported by the current st.image signature.
     """
     try:
-        # prefer using use_container_width for modern Streamlit
-        st.image(img, caption=caption, use_container_width=False, key=key)
-    except TypeError:
-        # fallback for older/newer versions that don't accept use_container_width param
+        sig = inspect.signature(st.image)
+        accepted = set(sig.parameters)
+    except Exception:
+        # If signature introspection fails, fallback to a safe call
         try:
-            st.image(img, caption=caption, width=getattr(img, "width", None), key=key)
+            st.image(img, caption=caption)
+            return
         except Exception:
-            # last resort
-            st.image(img, caption=caption, key=key)
+            st.image(img)
+            return
+
+    kwargs = {}
+    if "caption" in accepted and caption is not None:
+        kwargs["caption"] = caption
+
+    # Prefer explicit width when use_container_width isn't available.
+    if "use_container_width" in accepted:
+        # Keep layout consistent with previous behavior: don't expand to container.
+        kwargs["use_container_width"] = False
+    elif "width" in accepted:
+        w = getattr(img, "width", None)
+        if w is not None:
+            kwargs["width"] = w
+
+    if "key" in accepted and key is not None:
+        kwargs["key"] = key
+
+    # Final call
+    st.image(img, **kwargs)
+
+
 # ---------- TableImage (for the "Tabel Maken" preview) ----------
 class TableImage:
     def __init__(
@@ -106,9 +132,11 @@ class TableImage:
         self.font_size = int(font_size)
         self.cells = {}
         self.bold_cells = {}
+
     def set_text(self, row, col, text, bold=False):
         self.cells[(int(row), int(col))] = "" if text is None else str(text)
         self.bold_cells[(int(row), int(col))] = bool(bold)
+
     def draw(self):
         img = Image.new("RGB", (self.width, self.height), self.bg_color)
         draw = ImageDraw.Draw(img)
@@ -127,6 +155,7 @@ class TableImage:
                     outline=self.line_color,
                     width=self.line_width,
                 )
+
         for (r, c), text in self.cells.items():
             x = int(c * self.col_width)
             y = y_positions[r]
@@ -154,8 +183,11 @@ class TableImage:
                         bbox = draw.textbbox((0, 0), lines[0], font=font)
                         line_height = bbox[3] - bbox[1]
                     except Exception:
-                        _, h = font.getsize(lines[0])
-                        line_height = h
+                        try:
+                            _, h = font.getsize(lines[0])
+                            line_height = h
+                        except Exception:
+                            line_height = getattr(font, "size", 12)
                 else:
                     line_height = getattr(font, "size", 12)
             cell_height = y_positions[r + 1] - y_positions[r]
@@ -166,6 +198,8 @@ class TableImage:
                 draw.text((x + self.padding_left, current_y), line, fill=(0, 0, 0), font=font)
                 current_y += line_height
         return img
+
+
 # ---------- Sleepoptie image helper ----------
 def create_sleepoptie_single_image(
     text,
@@ -221,6 +255,8 @@ def create_sleepoptie_single_image(
     draw.multiline_text((margin_x, margin_y), wrapped_text, fill="black", font=font, spacing=4)
     filename = f"{tekst_titel}_{tekst_itemnummer}.png"
     return img, filename
+
+
 # ---------- Streamlit UI & CSS ----------
 st.set_page_config(page_title="Sleepoptie en Tabel Generator", layout="wide")
 st.markdown(
@@ -234,6 +270,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.info("Laatste Update: 2026-06-29 - Feedbacktool toegevoegd")
+
 manual_filename = "Nieuwe Itemtypes Handleiding Invoer TOM.docx"
 base_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 manual_path = os.path.join(base_dir, manual_filename)
@@ -251,9 +288,11 @@ except FileNotFoundError:
     st.warning(f"Handleiding niet gevonden: {manual_filename}. Zet het bestand in de app-map ({base_dir}).")
 except Exception as e:
     st.error(f"Kon handleiding niet laden: {e}")
+
 st.caption("Links vul je informatie in, rechts zie je de plaatjes.")
 mode = st.selectbox("Kies functie:", ["Tabel Maken", "Sleepopties Maken", "Feedbacktool"], index=0)
 left, right = st.columns([1, 1.2])
+
 # ----------------- TABEL MAKEN (full functionality) -----------------
 if mode == "Tabel Maken":
     with left:
@@ -323,6 +362,7 @@ if mode == "Tabel Maken":
                 row1_height = int(heading_lines * 18)
                 row2_height = int(longest_rows * 20 * answers_per_box)
                 row_heights = [row1_height, row2_height]
+
         table = TableImage(rows=rows, cols=cols, row_height=row_heights, col_width=col_width, font_size=11, line_width=1, wrap_width=max_chars_per_line)
         st.subheader("Vul het benodigde tekst per cel van de tabel in")
         if table_type.startswith("Type 2"):
@@ -340,6 +380,7 @@ if mode == "Tabel Maken":
                     else:
                         bold_cell = bold_choice
                 table.set_text(r, c, text, bold=bold_cell)
+
     with right:
         st.subheader("Preview & Downloaden (Tabel)")
         try:
@@ -353,6 +394,7 @@ if mode == "Tabel Maken":
             st.download_button(label="Download het plaatje", data=byte_im, file_name=fname_safe, mime="image/png", key="download_table")
         except Exception as e:
             st.error(f"Kon tabel niet genereren: {e}")
+
 # ----------------- SLEEPOPTIES MAKEN (full functionality) -----------------
 elif mode == "Sleepopties Maken":
     with left:
@@ -370,6 +412,7 @@ elif mode == "Sleepopties Maken":
         for idx, L in enumerate(letters):
             with opt_cols[idx % 2]:
                 options[idx] = st.text_area(f"Sleepoptie {L}", value="", height=80, key=f"opt_{L}")
+
     with right:
         st.subheader("Gegenereerde plaatjes")
         base_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
@@ -398,7 +441,7 @@ elif mode == "Sleepopties Maken":
                 if not text or text.strip() == "":
                     continue
                 letter = chr(64 + idx)
-                img, _= create_sleepoptie_single_image(
+                img, _ = create_sleepoptie_single_image(
                     text,
                     tekst_titel=tekst_titel,
                     tekst_itemnummer=f"{tekst_itemnummer}_{letter}",
@@ -429,6 +472,7 @@ elif mode == "Sleepopties Maken":
                 zip_buffer.seek(0)
                 zip_name = prefix + f"{safe_filename(tekst_titel)}_{tekst_itemnummer}_alle_sleepopties.zip"
                 st.download_button(label="Download alle plaatjes in 1 keer (.zip)", data=zip_buffer.getvalue(), file_name=safe_filename(zip_name) or "sleepopties.zip", mime="application/zip", key="download_all_zip")
+
 # ----------------- Feedbacktool (REDESIGNED) -----------------
 elif mode == "Feedbacktool":
     # We need python-docx
@@ -442,6 +486,7 @@ elif mode == "Feedbacktool":
     except Exception:
         st.error("Deze feature vereist package python-docx. Installeer met: pip install python-docx")
         st.stop()
+
     # Helpers for Word formatting & table borders
     def ensure_table_grid(table):
         tbl = table._tbl  # lxml element
@@ -469,6 +514,7 @@ elif mode == "Feedbacktool":
             node.set(qn("w:color"), "000000")
             borders.append(node)
         tblPr.append(borders)
+
     def format_para_no_spacing(para, font_family, font_size_pt, bold=False, text_override=None):
         try:
             pf = para.paragraph_format
@@ -488,6 +534,7 @@ elif mode == "Feedbacktool":
         except Exception:
             pass
         return run
+
     # helper to iterate blocks in order (paragraphs and tables)
     def iter_block_items(doc):
         for child in doc.element.body:
@@ -496,6 +543,7 @@ elif mode == "Feedbacktool":
                 yield ("p", Paragraph(child, doc))
             elif tag.endswith("}tbl"):
                 yield ("tbl", Table(child, doc))
+
     # Normalize heading for matching across docs (ignore case + collapse whitespace)
     def normalize_heading(h: str) -> str:
         if h is None:
@@ -503,9 +551,11 @@ elif mode == "Feedbacktool":
         h = str(h).strip()
         h = re.sub(r"\s+", " ", h)
         return h.lower()
+
     st.header("Feedbacktool")
     st.write("Deze tool heeft twee secties: 'Feedbackformulieren genereren' en 'Feedbackformulieren samenvoegen'.")
     tab = st.radio("Kies sectie:", ("Feedbackformulieren genereren", "Feedbackformulieren samenvoegen"))
+
     # Persistent session_state initialization
     if "ff_generated" not in st.session_state:
         st.session_state["ff_generated"] = []
@@ -513,6 +563,7 @@ elif mode == "Feedbacktool":
         st.session_state["merge_generated"] = []  # list of {"fname":..., "data":...}
     if "merge_ready" not in st.session_state:
         st.session_state["merge_ready"] = False
+
     # ---------------- Section 1: generate (Times New Roman default) ----------------
     if tab == "Feedbackformulieren genereren":
         st.subheader("1: Feedbackformulieren genereren")
@@ -582,6 +633,7 @@ elif mode == "Feedbacktool":
         font_family = st.selectbox("Lettertype voor Word (word-compatibel)", ["Times New Roman", "Calibri", "Arial"], index=0, key="ff_font")
         font_size_pt = st.number_input("Lettergrootte (pt) voor Word", min_value=8, max_value=18, value=11, step=1, key="ff_pt")
         generate = st.button("Genereer feedbackdocumenten", key="ff_generate")
+
         if generate:
             status = st.empty()
             total_points = 0
@@ -655,12 +707,14 @@ elif mode == "Feedbacktool":
                         generated.append({"fname": fname, "data": bio.read()})
                     except Exception as e:
                         status.error(f"Fout bij opslaan document voor {vc_name}: {e}")
+
                 # store persistent
                 st.session_state["ff_generated"] = generated
                 if not generated:
                     status.warning("Er zijn geen documenten gegenereerd (mogelijk namen van VC-leden leeg?).")
                 else:
                     status.success(f"✅ {len(generated)} document(en) staan klaar.")
+
         if st.session_state.get("ff_generated"):
             st.markdown("### Gegenereerde documenten")
             for idx, item in enumerate(st.session_state["ff_generated"], start=1):
@@ -688,12 +742,14 @@ elif mode == "Feedbacktool":
                 chosen_date_for_zip = date.today().isoformat()
             zip_name = f"FB_Gebundeld_{chosen_date_for_zip}.zip"
             st.download_button(label="Download alle documenten als ZIP", data=zip_buf.getvalue(), file_name=safe_filename(zip_name) or zip_name, mime="application/zip", key="ff_dl_zip")
+
     # ---------------- Section 2: merging uploaded docx (per-table bundling) ----------------
     else:
         st.subheader("2: Feedbackformulieren samenvoegen")
         st.write("Upload 2 of meer .docx bestanden. Alle tabellen worden gebundeld en in één document per CG gegeven.")
         uploaded = st.file_uploader("Upload de .docx FB bestanden van de VC-leden", type=["docx"], accept_multiple_files=True)
         merge_btn = st.button("Bundel FB")
+
         # helper: parse a document into ordered list of table entries
         def parse_doc_tables(doc):
             entries = []
@@ -733,8 +789,10 @@ elif mode == "Feedbacktool":
                         "rows": data_rows
                     })
             return entries
+
         if uploaded and len(uploaded) < 2:
             st.warning("Upload minimaal 2 bestanden om samen te voegen.")
+
         if merge_btn:
             if not uploaded or len(uploaded) < 2:
                 st.error("Je moet minstens 2 .docx bestanden uploaden.")
@@ -743,6 +801,7 @@ elif mode == "Feedbacktool":
                 all_docs_entries = []
                 dates_found = []
                 filenames = [getattr(f, "name", "uploaded.docx") for f in uploaded]
+
                 # Parse
                 for f in uploaded:
                     try:
@@ -755,6 +814,7 @@ elif mode == "Feedbacktool":
                     for e in entries:
                         if e.get("date"):
                             dates_found.append(e["date"])
+
                 if not all_docs_entries or sum(len(es) for es in all_docs_entries) == 0:
                     st.warning("Geen tabellen gevonden in de geüploade documenten.")
                 else:
@@ -762,6 +822,7 @@ elif mode == "Feedbacktool":
                     if not master_entries:
                         st.error("Het eerste document bevat geen tabellen; kan niet als referentie dienen.")
                         st.stop()
+
                     # Build canonical mapping from first document by normalized heading
                     canonical_order = []
                     canon_map = {}  # norm_heading -> {"orig": heading, "header": header, "rows": [] , "cg": cg, "order": n}
@@ -791,6 +852,7 @@ elif mode == "Feedbacktool":
                             "order": order_counter,
                         }
                         canonical_order.append(norm)
+
                     # Function to find a matching canonical key for a heading in another doc
                     def match_canonical(norm_heading, used_set):
                         if norm_heading in canon_map and norm_heading not in used_set:
@@ -800,6 +862,7 @@ elif mode == "Feedbacktool":
                         if candidates:
                             return candidates[0]
                         return None
+
                     # Merge rows from the remaining documents by heading text (normalized)
                     for doc_idx, entries in enumerate(all_docs_entries[1:], start=2):
                         used_in_this_doc = set()
@@ -820,6 +883,7 @@ elif mode == "Feedbacktool":
                             canon_map[key]["rows"].extend(e.get("rows", []))
                             if e.get("date"):
                                 dates_found.append(e["date"])
+
                     # Determine date for output
                     unique_dates = sorted(set(dates_found))
                     if len(unique_dates) == 0:
@@ -830,12 +894,14 @@ elif mode == "Feedbacktool":
                         chosen_date = unique_dates[0]
                     else:
                         chosen_date = st.selectbox("Meerdere data gevonden in bestanden. Kies de datum voor de bestandsnamen:", options=unique_dates, index=0)
+
                     # Group per CG and create documents; each heading becomes its own table
                     grouped = {}
                     for key in sorted(canon_map.keys(), key=lambda k: canon_map[k]["order"]):
                         info = canon_map[key]
                         cg = info.get("cg", "UNGROUPED") or "UNGROUPED"
                         grouped.setdefault(cg, []).append(info)
+
                     generated = []
                     for cg_prefix, infos in grouped.items():
                         doc = Document()
@@ -888,12 +954,14 @@ elif mode == "Feedbacktool":
                                 generated.append({"fname": fname, "data": bio.read()})
                             except Exception as e:
                                 st.error(f"Fout bij opslaan {cg_prefix}: {e}")
+
                     st.session_state["merge_generated"] = generated
                     st.session_state["merge_ready"] = True
                     if not st.session_state["merge_generated"]:
                         st.warning("Er zijn geen gebundelde documenten gemaakt (komen de tabellen in Word overeen?).")
                     else:
                         st.success(f"✅ {len(st.session_state['merge_generated'])} gebundelde FB-document(en) aangemaakt.")
+
         # Render download buttons persistently if merge_ready
         if st.session_state.get("merge_ready") and st.session_state.get("merge_generated"):
             st.markdown("### Gebundelde FB-documenten")
