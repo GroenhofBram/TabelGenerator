@@ -1,0 +1,472 @@
+<title>ToM Tools Blauwdruk</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+:root{
+  --bg:#f5f3ee;
+  --surface:#ffffff;
+  --ink:#1b2430;
+  --ink-soft:#51606f;
+  --ink-faint:#8794a2;
+  --accent:#2f5d8a;
+  --accent-ink:#1e3f5c;
+  --accent-soft:#e2ecf4;
+  --line:#dcdad2;
+  --line-strong:#c4c1b6;
+  --good:#3f7d5c;
+  --good-soft:#e3efe8;
+  --warn:#a5641f;
+  --warn-soft:#f3e8d8;
+  --code-bg:#eeece4;
+  --shadow: 0 1px 2px rgba(27,36,48,.06), 0 8px 24px -12px rgba(27,36,48,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11161d;
+    --surface:#171e27;
+    --ink:#e8ecf1;
+    --ink-soft:#a7b3c1;
+    --ink-faint:#6d7a89;
+    --accent:#7bafe0;
+    --accent-ink:#bcd9f5;
+    --accent-soft:#1d3450;
+    --line:#293241;
+    --line-strong:#374252;
+    --good:#6fbf94;
+    --good-soft:#173229;
+    --warn:#dba15a;
+    --warn-soft:#3a2c17;
+    --code-bg:#1c242f;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11161d;
+  --surface:#171e27;
+  --ink:#e8ecf1;
+  --ink-soft:#a7b3c1;
+  --ink-faint:#6d7a89;
+  --accent:#7bafe0;
+  --accent-ink:#bcd9f5;
+  --accent-soft:#1d3450;
+  --line:#293241;
+  --line-strong:#374252;
+  --good:#6fbf94;
+  --good-soft:#173229;
+  --warn:#dba15a;
+  --warn-soft:#3a2c17;
+  --code-bg:#1c242f;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"Source Serif 4", Georgia, "Times New Roman", serif;
+  font-size:17px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--accent-soft); color:var(--accent-ink);}
+
+h1,h2,h3,h4{
+  font-family:"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  color:var(--ink);
+  text-wrap:balance;
+  line-height:1.25;
+}
+code, .mono, .pill, .kv dt, .toc-num, .file-tag{
+  font-family:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ---------- Shell layout ---------- */
+.shell{
+  display:grid;
+  grid-template-columns: 232px minmax(0,760px);
+  justify-content:center;
+  gap:56px;
+  padding:64px 24px 120px;
+  max-width:1180px;
+  margin:0 auto;
+}
+@media (max-width: 980px){
+  .shell{grid-template-columns:minmax(0,1fr); max-width:760px;}
+  .toc{display:none;}
+}
+
+/* ---------- TOC ---------- */
+.toc{position:sticky; top:48px; align-self:start; font-family:"IBM Plex Sans",sans-serif;}
+.toc-eyebrow{
+  font-size:11px; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--ink-faint); margin:0 0 14px;
+}
+.toc ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px;}
+.toc li a{
+  display:flex; gap:10px; align-items:baseline;
+  padding:6px 8px; margin:0 -8px; border-radius:6px;
+  color:var(--ink-soft); text-decoration:none; font-size:13.5px;
+  transition:background .15s ease, color .15s ease;
+}
+.toc li a:hover, .toc li a:focus-visible{background:var(--accent-soft); color:var(--accent-ink); outline:none;}
+.toc-num{color:var(--ink-faint); font-size:11px; min-width:16px;}
+
+/* ---------- Header ---------- */
+.doc-header{margin-bottom:56px;}
+.doc-kicker{
+  font-family:"IBM Plex Sans",sans-serif; font-weight:600; font-size:12px;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--accent);
+  display:flex; align-items:center; gap:10px; margin-bottom:18px;
+}
+.doc-kicker::before{content:""; width:22px; height:2px; background:var(--accent); display:inline-block;}
+h1.doc-title{
+  font-size:clamp(32px,4.4vw,46px); font-weight:700; margin:0 0 14px; letter-spacing:-.01em;
+}
+.doc-sub{
+  font-family:"IBM Plex Sans",sans-serif; color:var(--ink-soft); font-size:16.5px;
+  max-width:56ch; margin:0 0 28px;
+}
+.meta-row{
+  display:flex; flex-wrap:wrap; gap:10px 28px;
+  border-top:1px solid var(--line); padding-top:18px;
+  font-family:"IBM Plex Sans",sans-serif; font-size:12.5px; color:var(--ink-faint);
+}
+.meta-row b{color:var(--ink-soft); font-weight:600;}
+
+/* ---------- Sections ---------- */
+section{margin-top:64px; scroll-margin-top:32px;}
+.sec-head{display:flex; align-items:baseline; gap:14px; margin-bottom:20px;}
+.sec-num{
+  font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--accent);
+  border:1px solid var(--line-strong); border-radius:5px; padding:2px 7px;
+}
+h2{font-size:23px; font-weight:600; margin:0;}
+h3{font-size:17.5px; font-weight:600; margin:28px 0 10px;}
+p{margin:0 0 14px;}
+p.lead{font-size:18px; color:var(--ink-soft);}
+ul,ol.plain{margin:0 0 16px; padding-left:22px;}
+li{margin-bottom:6px;}
+a{color:var(--accent);}
+
+/* ---------- Components ---------- */
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:10px;
+  padding:20px 22px; box-shadow:var(--shadow);
+}
+.grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:20px 0;}
+.grid-2{display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin:20px 0;}
+@media (max-width:640px){.grid-3,.grid-2{grid-template-columns:1fr;}}
+
+.module-card h4{
+  font-family:"IBM Plex Sans",sans-serif; font-size:15px; font-weight:600; margin:0 0 6px;
+  display:flex; align-items:center; gap:8px;
+}
+.module-card .file-tag{
+  font-size:10.5px; color:var(--ink-faint); background:var(--code-bg);
+  padding:1px 6px; border-radius:4px; font-weight:500;
+}
+.module-card p{font-family:"IBM Plex Sans",sans-serif; font-size:13.5px; color:var(--ink-soft); margin:0;}
+
+.kv{display:grid; grid-template-columns:max-content 1fr; gap:6px 18px; margin:16px 0; font-family:"IBM Plex Sans",sans-serif; font-size:14px;}
+.kv dt{color:var(--ink-faint); font-size:12px; padding-top:2px;}
+.kv dd{margin:0; color:var(--ink);}
+
+table{width:100%; border-collapse:collapse; font-family:"IBM Plex Sans",sans-serif; font-size:13.5px; margin:18px 0;}
+thead th{
+  text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink-faint); font-weight:600; border-bottom:1px solid var(--line-strong); padding:0 10px 8px;
+}
+tbody td{padding:10px; border-bottom:1px solid var(--line); vertical-align:top; color:var(--ink-soft);}
+tbody td:first-child{color:var(--ink); font-weight:500;}
+tbody tr:last-child td{border-bottom:none;}
+.tbl-wrap{overflow-x:auto;}
+
+pre{
+  background:var(--code-bg); border:1px solid var(--line); border-radius:8px;
+  padding:14px 16px; overflow-x:auto; font-size:13px; line-height:1.6; margin:16px 0;
+}
+code.inline{background:var(--code-bg); padding:1px 6px; border-radius:4px; font-size:.88em;}
+
+.callout{
+  border-left:3px solid var(--accent); background:var(--accent-soft);
+  border-radius:0 8px 8px 0; padding:14px 18px; margin:20px 0;
+  font-family:"IBM Plex Sans",sans-serif; font-size:14px; color:var(--accent-ink);
+}
+.callout.warn{border-color:var(--warn); background:var(--warn-soft); color:var(--ink);}
+.callout p{margin:0;}
+.callout p+p{margin-top:8px;}
+
+.pill{
+  display:inline-flex; align-items:center; gap:6px; font-size:11px;
+  padding:3px 9px; border-radius:20px; font-weight:500;
+}
+.pill.good{background:var(--good-soft); color:var(--good);}
+.pill.warn{background:var(--warn-soft); color:var(--warn);}
+.pill.neutral{background:var(--code-bg); color:var(--ink-soft);}
+
+.status-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px;}
+.status-list li{
+  display:flex; align-items:flex-start; gap:12px; margin:0;
+  font-family:"IBM Plex Sans",sans-serif; font-size:14px;
+}
+.status-list .pill{margin-top:1px; flex:none;}
+
+.diagram-wrap{margin:22px 0; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px; box-shadow:var(--shadow);}
+.diagram-wrap svg{width:100%; height:auto; display:block;}
+.diagram-caption{font-family:"IBM Plex Sans",sans-serif; font-size:12px; color:var(--ink-faint); margin-top:10px; text-align:center;}
+
+footer.doc-footer{
+  margin-top:80px; padding-top:24px; border-top:1px solid var(--line);
+  font-family:"IBM Plex Sans",sans-serif; font-size:12px; color:var(--ink-faint);
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+}
+
+@media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto;} }
+</style>
+
+<div class="shell">
+
+  <nav class="toc" aria-label="Inhoudsopgave">
+    <p class="toc-eyebrow">Inhoud</p>
+    <ol>
+      <li><a href="#overzicht"><span class="toc-num">01</span>Overzicht</a></li>
+      <li><a href="#architectuur"><span class="toc-num">02</span>Architectuur</a></li>
+      <li><a href="#modules"><span class="toc-num">03</span>Modules</a></li>
+      <li><a href="#algoritmes"><span class="toc-num">04</span>Kernalgoritmes</a></li>
+      <li><a href="#data"><span class="toc-num">05</span>Data &amp; bestanden</a></li>
+      <li><a href="#deployment"><span class="toc-num">06</span>Deployment</a></li>
+      <li><a href="#opslag"><span class="toc-num">07</span>Opslag &amp; lokale beveiliging</a></li>
+      <li><a href="#risicos"><span class="toc-num">08</span>Risico's &amp; beperkingen</a></li>
+      <li><a href="#roadmap"><span class="toc-num">09</span>Aanbevelingen</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="doc-header">
+      <p class="doc-kicker">Technisch ontwerpdocument</p>
+      <h1 class="doc-title">ToM Tools — Sleepoptie- &amp; Tabelgenerator</h1>
+      <p class="doc-sub">Interne Streamlit-applicatie voor het genereren van sleepoptie- en tabelafbeeldingen voor TOM-items, plus een feedbacktool voor VC-rondes. Dit document beschrijft de huidige architectuur, werking en aandachtspunten op basis van de broncode (<code class="inline">app.py</code>, 998 regels).</p>
+      <div class="meta-row">
+        <span><b>Bestand</b> app.py · single-file Streamlit</span>
+        <span><b>Taal</b> Python 3</span>
+        <span><b>Afhankelijkheden</b> streamlit, Pillow, python-docx, pandas, openpyxl</span>
+        <span><b>Hosting</b> uitsluitend lokaal (privacy-eis)</span>
+      </div>
+    </header>
+
+    <section id="overzicht">
+      <div class="sec-head"><span class="sec-num">01</span><h2>Overzicht</h2></div>
+      <p class="lead">ToM Tools ondersteunt itembouwers bij twee terugkerende, foutgevoelige klussen: het handmatig natekenen van sleepvraag-tabellen als afbeelding, en het rondsturen/verzamelen van feedbackformulieren binnen een vaststellingscommissie (VC).</p>
+      <p>De applicatie draait volledig lokaal via <code class="inline">streamlit run app.py</code> (of <code class="inline">app.bat</code> op Windows) en genereert output — PNG-afbeeldingen, ZIP-archieven en Word-documenten — die de gebruiker downloadt en elders (het itembouw-CMS) invoert. Er is geen server-side opslag, database of authenticatie: elke sessie is stateless behalve <code class="inline">st.session_state</code> binnen één browsersessie.</p>
+      <div class="grid-3">
+        <div class="card module-card">
+          <h4>Tabel Maken</h4>
+          <p>Rendert een gapmatch-tabel (Type 1 of 2) als PNG op basis van rij/kolomafmetingen en celtekst.</p>
+        </div>
+        <div class="card module-card">
+          <h4>Sleepopties Maken</h4>
+          <p>Rendert tot 8 losse antwoordoptie-afbeeldingen (A–H) met automatische regelafbreking en hoogte.</p>
+        </div>
+        <div class="card module-card">
+          <h4>Feedbacktool</h4>
+          <p>Genereert per VC-lid een .docx-formulier en voegt ingevulde formulieren later samen per CG.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="architectuur">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Architectuur</h2></div>
+      <p>De app is een monolithisch Streamlit-script zonder aparte backend. Elke rerun van het script (bij elke UI-interactie) voert opnieuw de volledige module-logica uit die bij de gekozen modus hoort. Er is geen scheiding tussen UI-laag en domeinlogica: invoer, renderlogica en Streamlit-widgets staan door elkaar in dezelfde functies.</p>
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Architectuurdiagram van ToM Tools">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-faint)"/>
+            </marker>
+          </defs>
+          <style>
+            .box{fill:var(--surface); stroke:var(--line-strong); stroke-width:1;}
+            .boxlabel{font-family:'IBM Plex Sans',sans-serif; font-size:12.5px; fill:var(--ink); font-weight:600;}
+            .boxsub{font-family:'IBM Plex Mono',monospace; font-size:10px; fill:var(--ink-faint);}
+            .edge{stroke:var(--ink-faint); stroke-width:1.2; fill:none; marker-end:url(#arrow);}
+            .accentbox{fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.2;}
+            .grouplabel{font-family:'IBM Plex Sans',sans-serif; font-size:10.5px; fill:var(--ink-faint); letter-spacing:.06em; text-transform:uppercase;}
+          </style>
+
+          <rect x="18" y="18" width="164" height="60" rx="9" class="accentbox"/>
+          <text x="100" y="44" text-anchor="middle" class="boxlabel">Streamlit UI</text>
+          <text x="100" y="60" text-anchor="middle" class="boxsub">st.selectbox(mode)</text>
+
+          <path class="edge" d="M100,78 L100,110"/>
+
+          <rect x="20" y="112" width="160" height="52" rx="8" class="box"/>
+          <text x="100" y="134" text-anchor="middle" class="boxlabel">Tabel Maken</text>
+          <text x="100" y="150" text-anchor="middle" class="boxsub">TableImage.draw()</text>
+
+          <rect x="280" y="112" width="160" height="52" rx="8" class="box"/>
+          <text x="360" y="134" text-anchor="middle" class="boxlabel">Sleepopties Maken</text>
+          <text x="360" y="150" text-anchor="middle" class="boxsub">create_sleepoptie_single_image()</text>
+
+          <rect x="540" y="112" width="160" height="52" rx="8" class="box"/>
+          <text x="620" y="134" text-anchor="middle" class="boxlabel">Feedbacktool</text>
+          <text x="620" y="150" text-anchor="middle" class="boxsub">python-docx</text>
+
+          <path class="edge" d="M100,110 L100,90 L360,90 L360,110"/>
+          <path class="edge" d="M360,90 L620,90 L620,110"/>
+
+          <path class="edge" d="M100,164 L100,196"/>
+          <path class="edge" d="M360,164 L360,196"/>
+          <path class="edge" d="M580,164 L580,196"/>
+          <path class="edge" d="M660,164 L660,196"/>
+
+          <rect x="20" y="198" width="160" height="46" rx="8" class="box"/>
+          <text x="100" y="226" text-anchor="middle" class="boxlabel">PNG (io.BytesIO)</text>
+
+          <rect x="280" y="198" width="160" height="46" rx="8" class="box"/>
+          <text x="360" y="226" text-anchor="middle" class="boxlabel">PNG-set + ZIP</text>
+
+          <rect x="500" y="198" width="90" height="46" rx="8" class="box"/>
+          <text x="545" y="226" text-anchor="middle" class="boxlabel">.docx</text>
+
+          <rect x="610" y="198" width="90" height="46" rx="8" class="box"/>
+          <text x="655" y="226" text-anchor="middle" class="boxlabel">ZIP</text>
+
+          <path class="edge" d="M100,244 L100,266"/>
+          <path class="edge" d="M360,244 L360,266"/>
+          <path class="edge" d="M545,244 L545,266"/>
+          <path class="edge" d="M655,244 L655,266"/>
+
+          <rect x="18" y="268" width="682" height="42" rx="8" class="accentbox"/>
+          <text x="360" y="294" text-anchor="middle" class="boxlabel">st.download_button() — lokale download naar itembouw-CMS</text>
+        </svg>
+        <p class="diagram-caption">Eén script, drie modi, geen gedeelde state buiten de sessie — output verlaat de app alleen via downloadknoppen.</p>
+      </div>
+      <div class="callout">
+        <p><b>Statisch bestanden:</b> lettertypes (<code class="inline">verdana.ttf</code>, <code class="inline">verdanab.ttf</code>) en <code class="inline">500x500_template.png</code> worden relatief aan <code class="inline">__file__</code> geladen — de app moet dus altijd vanuit zijn eigen map draaien.</p>
+      </div>
+    </section>
+
+    <section id="modules">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Modules</h2></div>
+
+      <h3>3.1 — Tabel Maken</h3>
+      <p>Genereert een gapmatch-tabel als raster van rechthoeken, getekend met Pillow's <code class="inline">ImageDraw</code> via de klasse <code class="inline">TableImage</code> (regel 112–221). De gebruiker kiest <b>Type 1</b> (vrije rijen/kolommen, elke cel los vetgedrukt) of <b>Type 2</b> (vaste 2×2-indeling van 225 px kolombreedte, met een globale bold-toggle).</p>
+      <table>
+        <thead><tr><th>Parameter</th><th>Bron</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td>rows / cols</td><td>number_input</td><td>Rastergrootte; kolombreedte = 450 ÷ cols (Type 1)</td></tr>
+          <tr><td>row_heights</td><td>afgeleid</td><td>Kopregel = regels × 18 px, antwoordregel = regels × 20 px</td></tr>
+          <tr><td>wrap_width</td><td>"karakters per regel"</td><td>Doorgegeven aan <code class="inline">textwrap.wrap()</code> per cel</td></tr>
+          <tr><td>cel-tekst + bold</td><td>st.text_input per cel</td><td><code class="inline">table.set_text(r, c, tekst, bold)</code></td></tr>
+        </tbody>
+      </table>
+      <p>Bestandsnaam volgt het patroon <code class="inline">[vakcode_]titel_itemnummer_tabel.png</code>, gesaneerd door <code class="inline">safe_filename()</code> (spaties → underscore, alles buiten <code class="inline">A-Za-z0-9._-</code> verwijderd).</p>
+
+      <h3>3.2 — Sleepopties Maken</h3>
+      <p>Genereert per ingevulde sleepoptie (A–H, max. 8) een los PNG-plaatje op basis van <code class="inline">500x500_template.png</code>, geschaald naar <code class="inline">450 / num_columns − 15</code> px breed. Alle opties krijgen dezelfde canvashoogte — het maximum over alle opties — zodat de gegenereerde plaatjes visueel uitlijnen in het CMS.</p>
+      <p>Output: individuele downloadknoppen per plaatje, plus één ZIP met alle plaatjes (<code class="inline">titel_itemnummer_alle_sleepopties.zip</code>).</p>
+
+      <h3>3.3 — Feedbacktool</h3>
+      <p>Twee subsecties, gedeeld via <code class="inline">st.session_state</code>:</p>
+      <div class="grid-2">
+        <div class="card">
+          <h4 style="font-family:'IBM Plex Sans',sans-serif;font-size:14px;margin:0 0 8px;">Genereren</h4>
+          <p style="font-size:14px;color:var(--ink-soft);">Voor elke combinatie van tekst × feedbackpunt × VC-lid wordt een kop + tabel (VC-lid / opmerking) toegevoegd aan een los .docx per VC-lid, gescheiden door pagina-einden. Feedbackpunten zijn afhankelijk van het gekozen "soort": Checklist, Items, Bezem of vrije tekst.</p>
+        </div>
+        <div class="card">
+          <h4 style="font-family:'IBM Plex Sans',sans-serif;font-size:14px;margin:0 0 8px;">Samenvoegen</h4>
+          <p style="font-size:14px;color:var(--ink-soft);">Bij upload van ≥2 ingevulde .docx-bestanden wordt het eerste document als canonieke bron gebruikt; koppen uit overige documenten worden genormaliseerd (lowercase, whitespace-collapse) en gematcht op tekst, met positionele fallback als de aantallen exact overeenkomen. Resultaat: één gebundeld document per CG-prefix.</p>
+        </div>
+      </div>
+      <div class="callout warn">
+        <p><b>Matching is heuristisch:</b> koppen die niet letterlijk (genormaliseerd) overeenkomen tussen documenten worden overgeslagen met een waarschuwing, tenzij het aantal tabellen in het geüploade document exact gelijk is aan het aantal in het referentiedocument — dan geldt positie-matching als vangnet. Handmatige controle van de output blijft nodig bij afwijkende feedbackformulieren.</p>
+      </div>
+    </section>
+
+    <section id="algoritmes">
+      <div class="sec-head"><span class="sec-num">04</span><h2>Kernalgoritmes</h2></div>
+
+      <h3>4.1 — Tekstterugloop (<code class="inline">wrap_text</code>)</h3>
+      <p>Eigen implementatie in plaats van <code class="inline">textwrap</code>: woorden worden één voor één toegevoegd aan de huidige regel zolang de lengte (in karakters, niet pixels) onder <code class="inline">width</code> blijft. Dit is een benadering — proportionele lettertypes (Verdana) hebben geen vaste karakterbreedte, dus de werkelijke regelbreedte in pixels varieert per tekst.</p>
+      <pre><code>projected_len = len(current_line) + 1 + len(word)
+if projected_len &gt; width:
+    # nieuwe regel starten</code></pre>
+
+      <h3>4.2 — Canvashoogte sleepopties</h3>
+      <p>Hoogte per optie: 18 px bij één regel, anders <code class="inline">max(10, regels × 15 + 5)</code>. Vervolgens wordt over alle 8 opties het maximum genomen en <code class="inline">max_lines − 1</code> extra pixels toegevoegd — een empirisch gevonden correctie die in de code niet verder onderbouwd is.</p>
+
+      <h3>4.3 — Kop-matching bij samenvoegen</h3>
+      <p><code class="inline">normalize_heading()</code> verlaagt naar lowercase en herleidt whitespace; <code class="inline">match_canonical()</code> zoekt eerst een exacte match, dan een match op het CG-prefix vóór een eventuele <code class="inline">#suffix</code> (bij dubbele koppen), en valt anders terug op documentpositie. Er is geen fuzzy/Levenshtein-matching — typefouten tussen VC-leden in koppen leiden tot overslaan, niet tot samenvoegen.</p>
+    </section>
+
+    <section id="data">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Data &amp; bestandsformaten</h2></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Bestand</th><th>Rol</th><th>Vereist</th></tr></thead>
+          <tbody>
+            <tr><td>app.py</td><td>volledige applicatielogica</td><td>ja</td></tr>
+            <tr><td>verdana.ttf / verdanab.ttf</td><td>lettertype voor gerenderde PNG's</td><td>ja — anders <code class="inline">ImageFont.load_default()</code> fallback</td></tr>
+            <tr><td>500x500_template.png</td><td>achtergrond-template sleepopties</td><td>optioneel — anders wit vlak</td></tr>
+            <tr><td>Nieuwe Itemtypes Handleiding Invoer TOM.docx</td><td>downloadbare handleiding in de UI</td><td>optioneel — anders waarschuwing</td></tr>
+            <tr><td>.streamlit/config.toml</td><td>forceert dark theme; wordt bij elke start herschreven door app.py</td><td>gegenereerd</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Alle output (PNG, ZIP, DOCX) wordt in-memory opgebouwd via <code class="inline">io.BytesIO</code> en direct aangeboden via <code class="inline">st.download_button</code> — er wordt niets weggeschreven naar schijf, wat aansluit bij de privacy-eis uit de README.</p>
+    </section>
+
+    <section id="deployment">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Deployment</h2></div>
+      <p>De README is expliciet: <i>"De site-app mag niet i.v.m. privacy, lokale host gebruiken."</i> — de tool mag dus alleen lokaal draaien, niet als gehoste webapp. <code class="inline">app.bat</code> faciliteert dit voor Windows-gebruikers: het controleert of Streamlit geïnstalleerd is, installeert het zo nodig, en start de app op <code class="inline">127.0.0.1:8501</code> met <code class="inline">--browser.gatherUsageStats=false</code>.</p>
+      <div class="kv">
+        <dt>Runtime</dt><dd>Python 3 + <code class="inline">py</code>-launcher (Windows) of directe <code class="inline">streamlit run app.py</code></dd>
+        <dt>Binding</dt><dd>127.0.0.1:8501 — niet bereikbaar buiten de lokale machine</dd>
+        <dt>Devcontainer</dt><dd>aanwezig (<code class="inline">.devcontainer/devcontainer.json</code>) voor consistente ontwikkelomgeving</dd>
+        <dt>Telemetrie</dt><dd>uitgeschakeld via <code class="inline">gatherUsageStats=false</code></dd>
+      </div>
+    </section>
+
+    <section id="opslag">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Opslag &amp; lokale beveiliging</h2></div>
+      <p>Naast de architectuur zelf bepaalt de plek waar de map op de pc staat of de privacy-eis uit de README ("geen hosting") in de praktijk ook wordt nageleefd. Dit zijn geen code-risico's, maar omgevingsrisico's.</p>
+      <ul class="status-list">
+        <li><span class="pill warn">Geen authenticatie</span><span>De Streamlit-server draait op <code class="inline">127.0.0.1:8501</code> zonder wachtwoord. Op een gedeelde of multi-user pc kan elke andere ingelogde gebruiker op diezelfde machine in principe bij de lopende sessie, terwijl de app privacygevoelig materiaal verwerkt (VC-feedback met namen, itemteksten).</span></li>
+        <li><span class="pill warn">Cloud-sync ondermijnt "geen hosting"</span><span>Staat de app-map toch in een gesynchroniseerde map (OneDrive, SharePoint/Teams, Dropbox, Google Drive), dan belanden gegenereerde .docx-feedbackbestanden alsnog in de cloud — precies wat de privacy-eis wil voorkomen. Let op: bij veel schoolaccounts is de standaardmap "Documenten" al gekoppeld aan OneDrive zonder dat dit direct zichtbaar is.</span></li>
+        <li><span class="pill good">Downloads-map is een geldige keuze</span><span>Zolang de <code class="inline">Downloads</code>-map op de gebruikte pc niet gesynchroniseerd wordt (te verifiëren via de instellingen van OneDrive/SharePoint), voldoet deze aan de eis: lokaal, niet-gedeeld, geen cloud-kopie.</span></li>
+        <li><span class="pill neutral">Bestanden bij elkaar houden</span><span>De app laadt lettertypes, template-png en handleiding relatief aan <code class="inline">__file__</code>. Verplaats na het uitpakken van de zip geen losse bestanden — de hele map moet intact blijven, ongeacht of dat Downloads is of een andere locatie.</span></li>
+        <li><span class="pill neutral">Output opruimen</span><span>Gegenereerde .docx-feedbackbestanden bevatten namen van VC-leden. Laat ze na verwerking in het CMS/archief niet onnodig lang in de Downloads-map staan — die map wordt door gebruikers doorgaans niet actief opgeruimd.</span></li>
+      </ul>
+      <div class="callout">
+        <p><b>Advies:</b> gebruik de Downloads-map (of een vergelijkbare lokale, niet-gesynchroniseerde map) als vaste locatie voor de uitgepakte tool, en verifieer per pc/account of die map inderdaad buiten de cloud-sync valt — dit verschilt per organisatie-instelling en kan wijzigen bij IT-beleidsupdates.</p>
+      </div>
+    </section>
+
+    <section id="risicos">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Risico's &amp; beperkingen</h2></div>
+      <ul class="status-list">
+        <li><span class="pill warn">Robuustheid</span><span>Regelterugloop rekent in karakters, niet in pixels — bij smalle kolommen of brede letters kan tekst toch buiten de cel/afbeelding vallen zonder foutmelding.</span></li>
+        <li><span class="pill warn">Data-integriteit</span><span>Samenvoegen vertrouwt op het eerste geüploade document als "waarheid"; een onvolledig of verkeerd eerste bestand beïnvloedt stilzwijgend alle volgende matches.</span></li>
+        <li><span class="pill warn">Geen validatie</span><span>Geen check op duplicate itemnummers, lege verplichte velden (buiten de sleepopties-waarschuwing), of bestandsnaamconflicten bij gelijktijdig gebruik.</span></li>
+        <li><span class="pill neutral">Onderhoudbaarheid</span><span>UI, renderlogica en documentgeneratie zitten in één 998-regels bestand zonder tests; wijzigingen aan één modus kunnen per ongeluk gedeelde helpers (<code class="inline">safe_filename</code>, <code class="inline">wrap_text</code>) raken.</span></li>
+        <li><span class="pill neutral">Bekende TODO's</span><span>Uit README: Facet 14 mist mogelijk een bredere tabel-layout, en er is nog geen gestandaardiseerde flow voor items met plaatjes.</span></li>
+      </ul>
+    </section>
+
+    <section id="roadmap">
+      <div class="sec-head"><span class="sec-num">09</span><h2>Aanbevelingen</h2></div>
+      <ol class="plain">
+        <li><b>Pixelnauwkeurige terugloop:</b> vervang de karaktergebaseerde <code class="inline">wrap_text</code> door meting via <code class="inline">draw.textlength()</code>, zodat de terugloopbreedte het werkelijke lettertype volgt.</li>
+        <li><b>Module-scheiding:</b> splits <code class="inline">app.py</code> in <code class="inline">rendering.py</code> (TableImage, sleepoptie-generatie), <code class="inline">feedback.py</code> (docx-logica) en een dunne <code class="inline">app.py</code> voor UI-orkestratie — vergroot testbaarheid zonder Streamlit te hoeven mocken voor de renderlogica.</li>
+        <li><b>Unit tests op de pure functies:</b> <code class="inline">safe_filename</code>, <code class="inline">wrap_text</code>, <code class="inline">normalize_heading</code> en <code class="inline">match_canonical</code> zijn zuivere functies en direct testbaar zonder Streamlit-context.</li>
+        <li><b>Expliciete validatie bij samenvoegen:</b> toon per geüpload document een overzicht van gematchte/niet-gematchte koppen vóór het genereren van de definitieve bundel, in plaats van alleen een waarschuwing na afloop.</li>
+        <li><b>Facet 14 / brede tabellen:</b> voeg een derde tabeltype toe met configureerbare kolombreedte per kolom (in plaats van de vaste 450 px-verdeling) om de openstaande TODO op te lossen.</li>
+      </ol>
+    </section>
+
+    <footer class="doc-footer">
+      <span>ToM Tools — technisch ontwerpdocument</span>
+      <span>Gebaseerd op broncode-analyse van app.py</span>
+    </footer>
+  </main>
+</div>
