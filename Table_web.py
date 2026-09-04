@@ -52,40 +52,61 @@ def wrap_text(text, width):
 
 def display_image(img, caption=None, key=None):
     """
-    Display images robustly across Streamlit versions:
-    Only pass keyword arguments supported by the current st.image signature.
+    Display images robustly across Streamlit versions.
+
+    - New API (>= 2025): width supports 'content' (equivalent to use_container_width=False) and 'stretch' (True).
+    - Older APIs: width may only accept numeric pixels and may not accept 'key'.
     """
     try:
         sig = inspect.signature(st.image)
         accepted = set(sig.parameters)
     except Exception:
-        # If signature introspection fails, fallback to a safe call
-        try:
-            st.image(img, caption=caption)
-            return
-        except Exception:
-            st.image(img)
-            return
+        accepted = set()
 
     kwargs = {}
     if "caption" in accepted and caption is not None:
         kwargs["caption"] = caption
-
-    # Prefer explicit width when use_container_width isn't available.
-    if "use_container_width" in accepted:
-        # Keep layout consistent with previous behavior: don't expand to container.
-        kwargs["use_container_width"] = False
-    elif "width" in accepted:
-        w = getattr(img, "width", None)
-        if w is not None:
-            kwargs["width"] = w
-
     if "key" in accepted and key is not None:
         kwargs["key"] = key
 
-    # Final call
-    st.image(img, **kwargs)
+    # Try new width API first (string-based)
+    if "width" in accepted:
+        try:
+            st.image(img, width="content", **kwargs)  # preferred modern equivalent to use_container_width=False
+            return
+        except TypeError:
+            # width might be numeric-only; try numeric width
+            pass
+        except ValueError:
+            # some versions may raise ValueError for string width
+            pass
 
+        # Fallback: numeric width if available
+        w = getattr(img, "width", None)
+        try:
+            if w is not None:
+                st.image(img, width=w, **kwargs)
+                return
+        except TypeError:
+            # key might not be supported; try without key
+            try:
+                kwargs_no_key = {k: v for k, v in kwargs.items() if k != "key"}
+                if w is not None:
+                    st.image(img, width=w, **kwargs_no_key)
+                    return
+            except Exception:
+                pass
+
+    # Final fallbacks
+    try:
+        st.image(img, **kwargs)
+    except TypeError:
+        # remove key if not supported
+        kwargs_no_key = {k: v for k, v in kwargs.items() if k != "key"}
+        try:
+            st.image(img, **kwargs_no_key)
+        except Exception:
+            st.image(img)
 
 # ---------- TableImage (for the "Tabel Maken" preview) ----------
 class TableImage:
@@ -199,7 +220,6 @@ class TableImage:
                 current_y += line_height
         return img
 
-
 # ---------- Sleepoptie image helper ----------
 def create_sleepoptie_single_image(
     text,
@@ -255,7 +275,6 @@ def create_sleepoptie_single_image(
     draw.multiline_text((margin_x, margin_y), wrapped_text, fill="black", font=font, spacing=4)
     filename = f"{tekst_titel}_{tekst_itemnummer}.png"
     return img, filename
-
 
 # ---------- Streamlit UI & CSS ----------
 st.set_page_config(page_title="Sleepoptie en Tabel Generator", layout="wide")
@@ -633,7 +652,6 @@ elif mode == "Feedbacktool":
         font_family = st.selectbox("Lettertype voor Word (word-compatibel)", ["Times New Roman", "Calibri", "Arial"], index=0, key="ff_font")
         font_size_pt = st.number_input("Lettergrootte (pt) voor Word", min_value=8, max_value=18, value=11, step=1, key="ff_pt")
         generate = st.button("Genereer feedbackdocumenten", key="ff_generate")
-
         if generate:
             status = st.empty()
             total_points = 0
@@ -707,14 +725,12 @@ elif mode == "Feedbacktool":
                         generated.append({"fname": fname, "data": bio.read()})
                     except Exception as e:
                         status.error(f"Fout bij opslaan document voor {vc_name}: {e}")
-
                 # store persistent
                 st.session_state["ff_generated"] = generated
                 if not generated:
                     status.warning("Er zijn geen documenten gegenereerd (mogelijk namen van VC-leden leeg?).")
                 else:
                     status.success(f"✅ {len(generated)} document(en) staan klaar.")
-
         if st.session_state.get("ff_generated"):
             st.markdown("### Gegenereerde documenten")
             for idx, item in enumerate(st.session_state["ff_generated"], start=1):
@@ -792,7 +808,7 @@ elif mode == "Feedbacktool":
 
         if uploaded and len(uploaded) < 2:
             st.warning("Upload minimaal 2 bestanden om samen te voegen.")
-
+        chosen_date = None
         if merge_btn:
             if not uploaded or len(uploaded) < 2:
                 st.error("Je moet minstens 2 .docx bestanden uploaden.")
@@ -801,7 +817,6 @@ elif mode == "Feedbacktool":
                 all_docs_entries = []
                 dates_found = []
                 filenames = [getattr(f, "name", "uploaded.docx") for f in uploaded]
-
                 # Parse
                 for f in uploaded:
                     try:
@@ -814,7 +829,6 @@ elif mode == "Feedbacktool":
                     for e in entries:
                         if e.get("date"):
                             dates_found.append(e["date"])
-
                 if not all_docs_entries or sum(len(es) for es in all_docs_entries) == 0:
                     st.warning("Geen tabellen gevonden in de geüploade documenten.")
                 else:
@@ -822,7 +836,6 @@ elif mode == "Feedbacktool":
                     if not master_entries:
                         st.error("Het eerste document bevat geen tabellen; kan niet als referentie dienen.")
                         st.stop()
-
                     # Build canonical mapping from first document by normalized heading
                     canonical_order = []
                     canon_map = {}  # norm_heading -> {"orig": heading, "header": header, "rows": [] , "cg": cg, "order": n}
@@ -852,7 +865,6 @@ elif mode == "Feedbacktool":
                             "order": order_counter,
                         }
                         canonical_order.append(norm)
-
                     # Function to find a matching canonical key for a heading in another doc
                     def match_canonical(norm_heading, used_set):
                         if norm_heading in canon_map and norm_heading not in used_set:
@@ -862,7 +874,6 @@ elif mode == "Feedbacktool":
                         if candidates:
                             return candidates[0]
                         return None
-
                     # Merge rows from the remaining documents by heading text (normalized)
                     for doc_idx, entries in enumerate(all_docs_entries[1:], start=2):
                         used_in_this_doc = set()
@@ -883,25 +894,22 @@ elif mode == "Feedbacktool":
                             canon_map[key]["rows"].extend(e.get("rows", []))
                             if e.get("date"):
                                 dates_found.append(e["date"])
-
                     # Determine date for output
                     unique_dates = sorted(set(dates_found))
                     if len(unique_dates) == 0:
                         st.warning("Geen datums gevonden in de geüploade documenten. Kies handmatig de datum voor de gebundelde bestanden. Dit is vaak een teken dat er iets mis is met de bestanden")
-                        chosen_date = st.date_input("Datum voor gebundelde bestanden", value=date.today())
-                        chosen_date = chosen_date.isoformat()
+                        chosen_date_val = st.date_input("Datum voor gebundelde bestanden", value=date.today())
+                        chosen_date = chosen_date_val.isoformat()
                     elif len(unique_dates) == 1:
                         chosen_date = unique_dates[0]
                     else:
                         chosen_date = st.selectbox("Meerdere data gevonden in bestanden. Kies de datum voor de bestandsnamen:", options=unique_dates, index=0)
-
                     # Group per CG and create documents; each heading becomes its own table
                     grouped = {}
                     for key in sorted(canon_map.keys(), key=lambda k: canon_map[k]["order"]):
                         info = canon_map[key]
                         cg = info.get("cg", "UNGROUPED") or "UNGROUPED"
                         grouped.setdefault(cg, []).append(info)
-
                     generated = []
                     for cg_prefix, infos in grouped.items():
                         doc = Document()
@@ -954,14 +962,12 @@ elif mode == "Feedbacktool":
                                 generated.append({"fname": fname, "data": bio.read()})
                             except Exception as e:
                                 st.error(f"Fout bij opslaan {cg_prefix}: {e}")
-
                     st.session_state["merge_generated"] = generated
                     st.session_state["merge_ready"] = True
                     if not st.session_state["merge_generated"]:
                         st.warning("Er zijn geen gebundelde documenten gemaakt (komen de tabellen in Word overeen?).")
                     else:
                         st.success(f"✅ {len(st.session_state['merge_generated'])} gebundelde FB-document(en) aangemaakt.")
-
         # Render download buttons persistently if merge_ready
         if st.session_state.get("merge_ready") and st.session_state.get("merge_generated"):
             st.markdown("### Gebundelde FB-documenten")
@@ -970,7 +976,6 @@ elif mode == "Feedbacktool":
                 data = item.get("data")
                 if not fname or not data:
                     continue
-
                 dl_key = f"merge_dl_{safe_filename(fname)}"
                 st.download_button(
                     label=fname,
@@ -986,7 +991,7 @@ elif mode == "Feedbacktool":
                     z.writestr(safe_filename(item["fname"]) or item["fname"], item["data"])
             zip_buf.seek(0)
             try:
-                zip_date = chosen_date
+                zip_date = chosen_date if 'chosen_date' in locals() and chosen_date else date.today().isoformat()
             except Exception:
                 zip_date = date.today().isoformat()
             zip_name = f"FB_Gebundeld_{zip_date}.zip"
